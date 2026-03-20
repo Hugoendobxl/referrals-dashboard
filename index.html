@@ -173,17 +173,37 @@ async function loadData(){
 
   try {
     const pages=await fetchAll();
+
+    // Collect all relation IDs to resolve dentiste names
+    const relationIds=new Set();
+    pages.forEach(p=>{
+      const rel=p.properties['Liste r\u00e9f\u00e9rents actifs']?.relation;
+      if(rel&&rel[0])relationIds.add(rel[0].id);
+    });
+
+    // Resolve names in parallel
+    const nameMap={};
+    await Promise.all([...relationIds].map(async id=>{
+      try{
+        const r=await fetch(`${PROXY}/page/${id}`);
+        const d=await r.json();
+        const titleProp=Object.values(d.properties||{}).find(p=>p.type==='title');
+        nameMap[id]=titleProp?.title?.map(t=>t.plain_text).join('')||id;
+      }catch(e){nameMap[id]=id;}
+    }));
+
     RAW=pages.map(p=>{
       const props=p.properties;
-      const dent=props['Dent envoyée']?.title?.map(t=>t.plain_text).join('')||'';
+      const relId=props['Liste r\u00e9f\u00e9rents actifs']?.relation?.[0]?.id||'';
+      const dent=nameMap[relId]||relId||'';
       const dateVal=props['Date']?.created_time?.slice(0,10)||p.created_time?.slice(0,10)||'';
       const conservRaw=props['Conservable']?.select?.name||'';
-      const conserv=conservRaw.replace('✅ ','').replace('❌ ','');
-      const typeDent=(props['Type de dent']?.formula?.string||'').replace('🦷 ','');
+      const conserv=conservRaw.replace('\u2705 ','').replace('\u274c ','');
+      const typeDent=(props['Type de dent']?.formula?.string||'').replace('\uD83E\uDDB7 ','').replace('🦷 ','');
       const trait=props['Type de traitement']?.select?.name||'';
       const endo=props['Endodontiste']?.select?.name||'';
       const mois=props['Mois']?.formula?.string||dateVal.slice(0,7)||'';
-      return {dentiste:dent,mois,jour:dateVal,type:typeDent,conservable:conserv,endo,trait};
+      return{dentiste:dent,mois,jour:dateVal,type:typeDent,conservable:conserv,endo,trait};
     }).filter(r=>r.dentiste);
 
     populateFilters();
