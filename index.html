@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Referrals Analytics — Endodontie Louise</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:#F8FAFC;color:#1a2332;min-height:100vh}
+.container{max-width:1200px;margin:0 auto;padding:24px}
+.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px}
+.logo{display:flex;align-items:center;gap:12px}
+.logo-icon{width:36px;height:36px;border-radius:10px;background:#0C447C;display:flex;align-items:center;justify-content:center}
+.logo-icon svg{width:20px;height:20px;fill:#fff}
+.logo-title{font-size:17px;font-weight:600;color:#0C447C}
+.logo-sub{font-size:12px;color:#8A9BB5}
+.tabs{display:flex;gap:4px;background:#EEF2F7;padding:4px;border-radius:10px}
+.tab{font-size:12px;padding:6px 14px;border-radius:7px;border:none;background:transparent;color:#5A7A9A;cursor:pointer;font-weight:500;transition:all .15s}
+.tab.active{background:#fff;color:#0C447C;box-shadow:0 1px 3px rgba(0,0,0,0.1)}
+.filters{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:20px;background:#fff;padding:16px;border-radius:12px;border:1px solid #E2EAF4}
+.fg{display:flex;flex-direction:column;gap:5px}
+.fg label{font-size:11px;color:#8A9BB5;font-weight:500;text-transform:uppercase;letter-spacing:.5px}
+.fg select{font-size:12px;padding:6px 10px;border-radius:8px;border:1px solid #D5E3F0;background:#F8FAFC;color:#1a2332;cursor:pointer;width:100%;outline:none}
+.fg select:focus{border-color:#378ADD}
+.metrics{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:20px}
+.metric{background:#fff;border:1px solid #E2EAF4;border-radius:12px;padding:16px}
+.metric-label{font-size:10px;color:#8A9BB5;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.metric-value{font-size:26px;font-weight:600;color:#0C447C}
+.badge{display:inline-block;font-size:10px;padding:2px 8px;border-radius:20px;margin-top:4px;font-weight:500}
+.badge-ok{background:#E6F1FB;color:#185FA5}
+.badge-warn{background:#FEF3E2;color:#B45309}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px}
+.card{background:#fff;border:1px solid #E2EAF4;border-radius:12px;padding:16px 20px;margin-bottom:12px}
+.card-title{font-size:10px;font-weight:600;color:#8A9BB5;margin-bottom:14px;text-transform:uppercase;letter-spacing:.5px}
+.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{font-size:10px;font-weight:600;color:#8A9BB5;text-align:left;padding:7px 10px;border-bottom:1px solid #E2EAF4;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;cursor:pointer;user-select:none}
+th:hover{color:#185FA5}
+th .si{margin-left:3px;opacity:.4}
+th.sorted .si{opacity:1;color:#185FA5}
+td{padding:8px 10px;border-bottom:1px solid #F0F5FA;color:#1a2332;white-space:nowrap}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#F8FAFC}
+.bar-wrap{display:flex;align-items:center;gap:8px}
+.bar{flex:1;height:5px;background:#E2EAF4;border-radius:3px;overflow:hidden;min-width:50px}
+.bar-fill{height:100%;border-radius:3px;background:#185FA5;transition:width .3s}
+.bar-fill.warn{background:#D97706}
+.section{display:none}
+.section.active{display:block}
+.search-input{font-size:12px;padding:6px 12px;border-radius:8px;border:1px solid #D5E3F0;background:#F8FAFC;color:#1a2332;width:180px;outline:none}
+.search-input:focus{border-color:#378ADD}
+.donut-wrap{display:flex;align-items:center;gap:20px;height:180px;justify-content:center}
+.donut-legend{display:flex;flex-direction:column;gap:8px}
+.dl-item{display:flex;align-items:center;gap:8px;font-size:12px;color:#5A7A9A}
+.dl-dot{width:10px;height:10px;border-radius:2px;flex-shrink:0}
+.dl-val{font-weight:600;color:#1a2332;margin-left:2px}
+.loading{text-align:center;padding:40px;color:#8A9BB5;font-size:14px}
+.error{background:#FEF2F2;border:1px solid #FECACA;border-radius:10px;padding:14px;color:#DC2626;font-size:13px;margin-bottom:16px}
+.refresh-btn{font-size:12px;padding:6px 14px;border-radius:8px;border:1px solid #D5E3F0;background:#fff;color:#185FA5;cursor:pointer;font-weight:500;transition:all .15s}
+.refresh-btn:hover{background:#E6F1FB}
+@media(max-width:768px){.grid2,.grid3,.metrics,.filters{grid-template-columns:1fr 1fr}}
+@media(max-width:480px){.grid2,.grid3,.metrics,.filters{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="container">
+
+<div class="topbar">
+  <div class="logo">
+    <div class="logo-icon"><svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg></div>
+    <div><div class="logo-title">Referrals Analytics</div><div class="logo-sub">Cabinet Endodontie Louise</div></div>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px">
+    <button class="refresh-btn" onclick="loadData()">↻ Actualiser</button>
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('referrals',this)">Referrals</button>
+      <button class="tab" onclick="switchTab('endo',this)">Endodontistes</button>
+    </div>
+  </div>
+</div>
+
+<div id="errorBox" style="display:none" class="error"></div>
+
+<div class="filters">
+  <div class="fg"><label>Mois</label><select id="fMois" onchange="render()"><option value="all">Tous</option></select></div>
+  <div class="fg"><label>Endodontiste</label><select id="fEndo" onchange="render()"><option value="all">Tous</option></select></div>
+  <div class="fg"><label>Traitement</label><select id="fTrait" onchange="render()"><option value="all">Tous</option></select></div>
+  <div class="fg"><label>Type de dent</label><select id="fType" onchange="render()"><option value="all">Tous</option></select></div>
+  <div class="fg"><label>Référent</label><select id="fRef" onchange="render()"><option value="all">Tous</option></select></div>
+</div>
+
+<div id="metrics" class="metrics"></div>
+
+<div class="section active" id="sec-referrals">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title" style="margin-bottom:0">Tableau récapitulatif — dentistes référents</div>
+      <input class="search-input" type="text" id="searchRef" placeholder="Rechercher..." oninput="render()">
+    </div>
+    <div id="loadingTable" class="loading">Chargement des données Notion...</div>
+    <div id="tableWrap" style="display:none;overflow-x:auto">
+      <table><thead id="thead"><tr></tr></thead><tbody id="tRef"></tbody></table>
+    </div>
+  </div>
+  <div class="grid3">
+    <div class="card" style="margin-bottom:0;grid-column:span 2"><div class="card-title">Dents reçues par référent</div><div style="position:relative;height:200px"><canvas id="cRef"></canvas></div></div>
+    <div class="card" style="margin-bottom:0">
+      <div class="card-title">Type de traitement</div>
+      <div class="donut-wrap">
+        <div style="position:relative;width:110px;height:110px;flex-shrink:0"><canvas id="cTrait"></canvas></div>
+        <div class="donut-legend" id="dLegend"></div>
+      </div>
+    </div>
+  </div>
+  <div class="card" style="margin-top:0"><div class="card-title">Répartition par type de dent</div><div style="position:relative;height:150px"><canvas id="cType"></canvas></div></div>
+</div>
+
+<div class="section" id="sec-endo">
+  <div class="grid2">
+    <div class="card" style="margin-bottom:0"><div class="card-title">Traitements par endodontiste</div><div style="position:relative;height:220px"><canvas id="cEndoBar"></canvas></div></div>
+    <div class="card" style="margin-bottom:0"><div class="card-title">Évolution mensuelle</div><div style="position:relative;height:220px"><canvas id="cEndoLine"></canvas></div></div>
+  </div>
+  <div class="card" style="margin-top:12px"><div class="card-title">Traitements par jour</div><div style="position:relative;height:180px"><canvas id="cEndoDay"></canvas></div></div>
+  <div class="card">
+    <div class="card-title">Comparaison endodontistes</div>
+    <div style="overflow-x:auto"><table><thead id="endoThead"><tr></tr></thead><tbody id="tEndo"></tbody></table></div>
+  </div>
+</div>
+
+</div>
+
+<script>
+const PROXY='https://notion-proxy-production-b1c3.up.railway.app';
+const DB_ID='31ad1a23d192802c97e4d7be3453e588';
+const BLUES=['#0C447C','#185FA5','#378ADD','#85B7EB','#B5D4F4'];
+const TRAIT_COLORS={'Traitement':'#185FA5','Retraitement':'#378ADD','Chirurgie':'#85B7EB'};
+
+let RAW=[];
+let charts={};
+let sortCol='total';
+let sortDir=-1;
+
+function destroyAll(){Object.values(charts).forEach(c=>{try{c.destroy()}catch(e){}});charts={};}
+
+async function fetchAll(){
+  let results=[];
+  let cursor=undefined;
+  do {
+    const body={page_size:100};
+    if(cursor)body.start_cursor=cursor;
+    const res=await fetch(`${PROXY}/query/${DB_ID}`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(body)
+    });
+    if(!res.ok)throw new Error(`Erreur ${res.status}`);
+    const data=await res.json();
+    if(data.object==='error')throw new Error(data.message);
+    results=results.concat(data.results||[]);
+    cursor=data.has_more?data.next_cursor:undefined;
+  } while(cursor);
+  return results;
+}
+
+async function loadData(){
+  document.getElementById('loadingTable').style.display='block';
+  document.getElementById('tableWrap').style.display='none';
+  document.getElementById('errorBox').style.display='none';
+  document.getElementById('metrics').innerHTML='<div class="loading">Chargement...</div>';
+
+  try {
+    const pages=await fetchAll();
+    RAW=pages.map(p=>{
+      const props=p.properties;
+      const dent=props['Dent envoyée']?.title?.map(t=>t.plain_text).join('')||'';
+      const dateVal=props['Date']?.created_time?.slice(0,10)||p.created_time?.slice(0,10)||'';
+      const conservRaw=props['Conservable']?.select?.name||'';
+      const conserv=conservRaw.replace('✅ ','').replace('❌ ','');
+      const typeDent=(props['Type de dent']?.formula?.string||'').replace('🦷 ','');
+      const trait=props['Type de traitement']?.select?.name||'';
+      const endo=props['Endodontiste']?.select?.name||'';
+      const mois=props['Mois']?.formula?.string||dateVal.slice(0,7)||'';
+      return {dentiste:dent,mois,jour:dateVal,type:typeDent,conservable:conserv,endo,trait};
+    }).filter(r=>r.dentiste);
+
+    populateFilters();
+    document.getElementById('loadingTable').style.display='none';
+    document.getElementById('tableWrap').style.display='block';
+    render();
+  } catch(e){
+    document.getElementById('loadingTable').style.display='none';
+    document.getElementById('metrics').innerHTML='';
+    document.getElementById('errorBox').style.display='block';
+    document.getElementById('errorBox').textContent='Erreur : '+e.message;
+  }
+}
+
+function populateFilters(){
+  const fill=(id,vals)=>{
+    const sel=document.getElementById(id);
+    const cur=sel.value;
+    sel.innerHTML='<option value="all">Tous</option>';
+    vals.forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=v;sel.appendChild(o);});
+    if(vals.includes(cur))sel.value=cur;
+  };
+  fill('fMois',[...new Set(RAW.map(r=>r.mois).filter(Boolean))].sort());
+  fill('fEndo',[...new Set(RAW.map(r=>r.endo).filter(Boolean))].sort());
+  fill('fTrait',[...new Set(RAW.map(r=>r.trait).filter(Boolean))].sort());
+  fill('fType',[...new Set(RAW.map(r=>r.type).filter(Boolean))].sort());
+  fill('fRef',[...new Set(RAW.map(r=>r.dentiste).filter(Boolean))].sort());
+}
+
+function filtered(){
+  const m=document.getElementById('fMois').value;
+  const e=document.getElementById('fEndo').value;
+  const tr=document.getElementById('fTrait').value;
+  const t=document.getElementById('fType').value;
+  const r=document.getElementById('fRef').value;
+  return RAW.filter(x=>(m==='all'||x.mois===m)&&(e==='all'||x.endo===e)&&(tr==='all'||x.trait===tr)&&(t==='all'||x.type===t)&&(r==='all'||x.dentiste===r));
+}
+
+function sortBy(col){if(sortCol===col){sortDir*=-1;}else{sortCol=col;sortDir=-1;}render();}
+
+function switchTab(tab,btn){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.getElementById('sec-'+tab).classList.add('active');
+  render();
+}
+
+function render(){
+  if(!RAW.length)return;
+  destroyAll();
+  const rows=filtered();
+  const total=rows.length;
+  const oui=rows.filter(r=>r.conservable==='Oui').length;
+  const pct=total?Math.round(oui/total*100):0;
+  const moisList=[...new Set(RAW.map(r=>r.mois).filter(Boolean))].sort();
+  const moisLabels=moisList.map(m=>{const d=new Date(m+'-01');return d.toLocaleDateString('fr-FR',{month:'short',year:'2-digit'});});
+  const refs=[...new Set(RAW.map(r=>r.dentiste).filter(Boolean))].sort();
+  const endos=[...new Set(RAW.map(r=>r.endo).filter(Boolean))].sort();
+
+  document.getElementById('metrics').innerHTML=`
+    <div class="metric"><div class="metric-label">Dents reçues</div><div class="metric-value">${total}</div></div>
+    <div class="metric"><div class="metric-label">Traitées</div><div class="metric-value">${oui}</div><span class="badge badge-ok">${pct}%</span></div>
+    <div class="metric"><div class="metric-label">Non conservables</div><div class="metric-value">${total-oui}</div><span class="badge badge-warn">${100-pct}%</span></div>
+    <div class="metric"><div class="metric-label">Référents actifs</div><div class="metric-value">${[...new Set(rows.map(r=>r.dentiste))].length}</div></div>
+    <div class="metric"><div class="metric-label">Endodontistes</div><div class="metric-value">${[...new Set(rows.map(r=>r.endo).filter(Boolean))].length}</div></div>
+  `;
+
+  const activeTab=document.querySelector('.tab.active').textContent.trim();
+
+  if(activeTab==='Referrals'){
+    const search=(document.getElementById('searchRef').value||'').toLowerCase();
+    const byRef={};
+    refs.forEach(d=>{
+      const allD=RAW.filter(r=>r.dentiste===d);
+      const byMois={};
+      moisList.forEach(m=>{byMois[m]=allD.filter(r=>r.mois===m).length;});
+      byRef[d]={nom:d,...byMois,total:allD.length,oui:allD.filter(r=>r.conservable==='Oui').length,non:allD.filter(r=>r.conservable==='Non').length,pct:allD.length?Math.round(allD.filter(r=>r.conservable==='Oui').length/allD.length*100):0};
+    });
+
+    let tableData=Object.values(byRef).filter(v=>v.total>0&&v.nom.toLowerCase().includes(search));
+    tableData.sort((a,b)=>{const av=sortCol==='nom'?a.nom:(a[sortCol]||0);const bv=sortCol==='nom'?b.nom:(b[sortCol]||0);if(typeof av==='string')return sortDir*(av.localeCompare(bv));return sortDir*(bv-av);});
+
+    document.getElementById('thead').innerHTML=`<tr>
+      <th onclick="sortBy('nom')" id="th-nom">Dentiste <span class="si" id="si-nom">↕</span></th>
+      ${moisList.map(m=>`<th style="text-align:center" onclick="sortBy('${m}')" id="th-${m}">${new Date(m+'-01').toLocaleDateString('fr-FR',{month:'short'})} <span class="si" id="si-${m}">↕</span></th>`).join('')}
+      <th style="text-align:center" onclick="sortBy('total')" id="th-total">Total <span class="si" id="si-total">↕</span></th>
+      <th style="text-align:center" onclick="sortBy('oui')" id="th-oui">Traitées <span class="si" id="si-oui">↕</span></th>
+      <th style="text-align:center" onclick="sortBy('non')" id="th-non">Non cons. <span class="si" id="si-non">↕</span></th>
+      <th onclick="sortBy('pct')" id="th-pct">% conservable <span class="si" id="si-pct">↕</span></th>
+    </tr>`;
+
+    ['nom','total','oui','non','pct',...moisList].forEach(c=>{
+      const th=document.getElementById('th-'+c);const si=document.getElementById('si-'+c);
+      if(th&&si){th.classList.toggle('sorted',sortCol===c);si.textContent=sortCol===c?(sortDir===-1?'↓':'↑'):'↕';}
+    });
+
+    const tbody=document.getElementById('tRef');tbody.innerHTML='';
+    tableData.forEach(v=>{tbody.innerHTML+=`<tr><td style="font-weight:500">${v.nom}</td>${moisList.map(m=>`<td style="text-align:center">${v[m]||'—'}</td>`).join('')}<td style="text-align:center;font-weight:600">${v.total}</td><td style="text-align:center">${v.oui}</td><td style="text-align:center">${v.non}</td><td><div class="bar-wrap"><div class="bar"><div class="bar-fill ${v.pct<70?'warn':''}" style="width:${v.pct}%"></div></div><span style="font-size:11px;min-width:30px;text-align:right;color:#5A7A9A">${v.pct}%</span></div></td></tr>`;});
+
+    const topRef=tableData.slice(0,10);
+    charts.cRef=new Chart(document.getElementById('cRef'),{type:'bar',data:{labels:topRef.map(v=>v.nom),datasets:[{label:'Traitées',data:topRef.map(v=>v.oui),backgroundColor:'#185FA5',borderRadius:4},{label:'Non cons.',data:topRef.map(v=>v.non),backgroundColor:'#B5D4F4',borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{stacked:true,ticks:{font:{size:10},color:'#8A9BB5'},grid:{display:false}},y:{stacked:true,ticks:{font:{size:10},color:'#8A9BB5',stepSize:1},grid:{color:'rgba(0,0,0,0.04)'}}}}});
+
+    const traits=[...new Set(RAW.map(r=>r.trait).filter(Boolean))];
+    const traitCounts=traits.map(t=>rows.filter(r=>r.trait===t).length);
+    const traitTotal=traitCounts.reduce((a,b)=>a+b,0);
+    if(traitTotal>0){
+      charts.cTrait=new Chart(document.getElementById('cTrait'),{type:'doughnut',data:{labels:traits,datasets:[{data:traitCounts,backgroundColor:traits.map(t=>TRAIT_COLORS[t]||'#ccc'),borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,cutout:'65%',plugins:{legend:{display:false}}}});
+      document.getElementById('dLegend').innerHTML=traits.map((t,i)=>`<div class="dl-item"><span class="dl-dot" style="background:${TRAIT_COLORS[t]||'#ccc'}"></span>${t}<span class="dl-val">${Math.round(traitCounts[i]/traitTotal*100)}%</span></div>`).join('');
+    }
+
+    const types=[...new Set(RAW.map(r=>r.type).filter(Boolean))];
+    if(types.length>0){
+      charts.cType=new Chart(document.getElementById('cType'),{type:'bar',data:{labels:types,datasets:[{data:types.map(t=>rows.filter(r=>r.type===t).length),backgroundColor:BLUES,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:11},color:'#8A9BB5'},grid:{display:false}},y:{ticks:{font:{size:11},color:'#8A9BB5',stepSize:1},grid:{color:'rgba(0,0,0,0.04)'}}}}});
+    }
+
+  } else {
+    const byEndo={};
+    endos.forEach(e=>{byEndo[e]={total:0,mol:0,pre:0};moisList.forEach(m=>{byEndo[e][m]=0;});});
+    rows.forEach(r=>{if(!byEndo[r.endo])return;byEndo[r.endo].total++;if(r.mois)byEndo[r.endo][r.mois]=(byEndo[r.endo][r.mois]||0)+1;if(r.type&&r.type.toLowerCase().includes('mol'))byEndo[r.endo].mol++;if(r.type&&r.type.toLowerCase().includes('pr'))byEndo[r.endo].pre++;});
+
+    charts.cEndoBar=new Chart(document.getElementById('cEndoBar'),{type:'bar',data:{labels:endos,datasets:[{data:endos.map(e=>byEndo[e]?.total||0),backgroundColor:BLUES.slice(0,endos.length),borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:11},color:'#8A9BB5'},grid:{display:false}},y:{ticks:{font:{size:11},color:'#8A9BB5',stepSize:1},grid:{color:'rgba(0,0,0,0.04)'}}}}});
+
+    charts.cEndoLine=new Chart(document.getElementById('cEndoLine'),{type:'line',data:{labels:moisLabels,datasets:endos.map((e,i)=>({label:e,data:moisList.map(m=>byEndo[e]?.[m]||0),borderColor:BLUES[i],backgroundColor:'transparent',tension:.3,pointRadius:4,pointBackgroundColor:BLUES[i]}))},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:11},color:'#8A9BB5',padding:12,boxWidth:10}}},scales:{x:{ticks:{font:{size:11},color:'#8A9BB5'},grid:{display:false}},y:{ticks:{font:{size:11},color:'#8A9BB5',stepSize:1},grid:{color:'rgba(0,0,0,0.04)'}}}}});
+
+    const selEndo=document.getElementById('fEndo').value;
+    const dayRows=selEndo==='all'?rows:rows.filter(r=>r.endo===selEndo);
+    const byDay={};
+    dayRows.forEach(r=>{if(r.jour)byDay[r.jour]=(byDay[r.jour]||0)+1;});
+    const days=Object.keys(byDay).sort();
+    if(days.length>0){
+      charts.cEndoDay=new Chart(document.getElementById('cEndoDay'),{type:'bar',data:{labels:days.map(d=>d.slice(5)),datasets:[{data:days.map(d=>byDay[d]),backgroundColor:'#B5D4F4',borderColor:'#185FA5',borderWidth:1,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:10},color:'#8A9BB5'},grid:{display:false}},y:{ticks:{font:{size:10},color:'#8A9BB5',stepSize:1},grid:{color:'rgba(0,0,0,0.04)'}}}}});
+    }
+
+    document.getElementById('endoThead').innerHTML=`<tr><th>Endodontiste</th>${moisList.map(m=>`<th style="text-align:center">${new Date(m+'-01').toLocaleDateString('fr-FR',{month:'short'})}</th>`).join('')}<th style="text-align:center">Total</th><th style="text-align:center">Molaires</th><th style="text-align:center">Prémolaires</th></tr>`;
+    const tbody=document.getElementById('tEndo');tbody.innerHTML='';
+    endos.forEach(e=>{const v=byEndo[e];if(!v||!v.total)return;tbody.innerHTML+=`<tr><td style="font-weight:500">${e}</td>${moisList.map(m=>`<td style="text-align:center">${v[m]||'—'}</td>`).join('')}<td style="text-align:center;font-weight:600">${v.total}</td><td style="text-align:center">${v.mol}</td><td style="text-align:center">${v.pre}</td></tr>`;});
+  }
+}
+
+loadData();
+</script>
+</body>
+</html>
