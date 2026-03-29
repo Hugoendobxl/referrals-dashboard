@@ -9,6 +9,21 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'DM Sans',sans-serif;background:#F8FAFC;color:#1a2332;min-height:100vh}
+.pin-screen{position:fixed;inset:0;background:#F8FAFC;display:flex;align-items:center;justify-content:center;z-index:9999}
+.pin-card{background:#fff;border:1px solid #E2EAF4;border-radius:16px;padding:40px 48px;text-align:center;box-shadow:0 4px 24px rgba(12,68,124,0.08)}
+.pin-logo{width:48px;height:48px;border-radius:12px;background:#0C447C;display:flex;align-items:center;justify-content:center;margin:0 auto 20px}
+.pin-logo svg{width:24px;height:24px;fill:#fff}
+.pin-title{font-size:18px;font-weight:600;color:#0C447C;margin-bottom:6px}
+.pin-sub{font-size:13px;color:#8A9BB5;margin-bottom:28px}
+.pin-dots{display:flex;gap:12px;justify-content:center;margin-bottom:28px}
+.pin-dot{width:14px;height:14px;border-radius:50%;border:2px solid #D5E3F0;background:transparent;transition:all .15s}
+.pin-dot.filled{background:#0C447C;border-color:#0C447C}
+.pin-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:240px;margin:0 auto}
+.pin-btn{padding:16px;border-radius:10px;border:1px solid #E2EAF4;background:#F8FAFC;font-size:18px;font-weight:500;color:#1a2332;cursor:pointer;transition:all .15s}
+.pin-btn:hover{background:#E6F1FB;border-color:#378ADD}
+.pin-btn:active{transform:scale(0.96)}
+.pin-btn.del{font-size:14px;color:#8A9BB5}
+.pin-error{color:#DC2626;font-size:13px;margin-top:16px;min-height:20px}
 .container{max-width:1200px;margin:0 auto;padding:24px}
 .topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px}
 .logo{display:flex;align-items:center;gap:12px}
@@ -66,7 +81,36 @@ tr:hover td{background:#F8FAFC}
 </style>
 </head>
 <body>
-<div class="container">
+<div class="pin-screen" id="pinScreen">
+  <div class="pin-card">
+    <div class="pin-logo"><svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg></div>
+    <div class="pin-title">Referrals Analytics</div>
+    <div class="pin-sub">Cabinet Endodontie Louise</div>
+    <div class="pin-dots">
+      <div class="pin-dot" id="d0"></div>
+      <div class="pin-dot" id="d1"></div>
+      <div class="pin-dot" id="d2"></div>
+      <div class="pin-dot" id="d3"></div>
+      <div class="pin-dot" id="d4"></div>
+      <div class="pin-dot" id="d5"></div>
+    </div>
+    <div class="pin-pad">
+      <button class="pin-btn" onclick="pinPress('1')">1</button>
+      <button class="pin-btn" onclick="pinPress('2')">2</button>
+      <button class="pin-btn" onclick="pinPress('3')">3</button>
+      <button class="pin-btn" onclick="pinPress('4')">4</button>
+      <button class="pin-btn" onclick="pinPress('5')">5</button>
+      <button class="pin-btn" onclick="pinPress('6')">6</button>
+      <button class="pin-btn" onclick="pinPress('7')">7</button>
+      <button class="pin-btn" onclick="pinPress('8')">8</button>
+      <button class="pin-btn" onclick="pinPress('9')">9</button>
+      <button class="pin-btn" onclick="pinPress('0')" style="grid-column:2">0</button>
+      <button class="pin-btn del" onclick="pinDel()">&#9003;</button>
+    </div>
+    <div class="pin-error" id="pinError"></div>
+  </div>
+</div>
+<div class="container" id="mainApp" style="display:none">
 
 <div class="topbar">
   <div class="logo">
@@ -133,6 +177,41 @@ tr:hover td{background:#F8FAFC}
 </div>
 
 <script>
+
+const CORRECT_PIN='210687';
+let pinEntry='';
+
+function pinPress(d){
+  if(pinEntry.length>=6)return;
+  pinEntry+=d;
+  document.getElementById('d'+(pinEntry.length-1)).classList.add('filled');
+  if(pinEntry.length===6){
+    setTimeout(()=>{
+      if(pinEntry===CORRECT_PIN){
+        document.getElementById('pinScreen').style.display='none';
+        document.getElementById('mainApp').style.display='block';
+        loadData();
+      } else {
+        document.getElementById('pinError').textContent='Code incorrect. Réessayez.';
+        pinEntry='';
+        for(let i=0;i<6;i++)document.getElementById('d'+i).classList.remove('filled');
+      }
+    },200);
+  }
+}
+
+function pinDel(){
+  if(pinEntry.length===0)return;
+  pinEntry=pinEntry.slice(0,-1);
+  document.getElementById('d'+pinEntry.length).classList.remove('filled');
+  document.getElementById('pinError').textContent='';
+}
+
+document.addEventListener('keydown',e=>{
+  if(e.key>='0'&&e.key<='9')pinPress(e.key);
+  if(e.key==='Backspace')pinDel();
+});
+
 const PROXY='https://notion-proxy-production-b1c3.up.railway.app';
 const DB_ID='31ad1a23d192802c97e4d7be3453e588';
 const BLUES=['#0C447C','#185FA5','#378ADD','#85B7EB','#B5D4F4'];
@@ -344,7 +423,6 @@ function render(){
   }
 }
 
-loadData();
 </script>
 </body>
 </html>
